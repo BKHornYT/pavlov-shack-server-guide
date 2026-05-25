@@ -159,6 +159,14 @@ docker compose -f ~/pavlov-shack/docker-compose.yml restart
 docker compose -f ~/pavlov-shack/docker-compose.yml down
 ```
 
+## Connecting to RCON
+
+Once your server is running with RCON configured, you can manage it from your browser using **[pavlovrcon.com](https://pavlovrcon.com/)** — no software to install.
+
+1. Go to [pavlovrcon.com](https://pavlovrcon.com/)
+2. Enter your server IP, port (`9100`), and RCON password
+3. You can now run commands, switch maps, kick/ban players, and more
+
 ## RCON commands
 
 | Command | Description |
