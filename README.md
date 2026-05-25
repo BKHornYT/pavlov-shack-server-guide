@@ -11,31 +11,17 @@ Self-host a Pavlov Shack (Meta Quest) server using Docker. Works on any Linux VP
 ## 1. Install Docker
 
 ```bash
-sudo apt update && sudo apt install -y ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+curl -sSL https://get.docker.com/ | CHANNEL=stable bash
 ```
 
-## 2. Fix a required library
-
-The Docker image has a broken `libc++.so` (it's a linker script, not a real library). Extract the real one and save it to your host:
-
-```bash
-docker run --rm --entrypoint bash ghcr.io/gab9281/pavlov-shack-docker:main \
-  -c "cat /usr/lib/llvm-10/lib/libc++.so.1.0" > /root/libc++.so
-```
-
-## 3. Create the server folder
+## 2. Create the server folder
 
 ```bash
 mkdir -p ~/pavlov-shack/Saved/Config/LinuxServer
 chown -R 999:999 ~/pavlov-shack/Saved
 ```
 
-## 4. Create docker-compose.yml
+## 3. Create docker-compose.yml
 
 ```bash
 nano ~/pavlov-shack/docker-compose.yml
@@ -46,7 +32,7 @@ Paste this:
 ```yaml
 services:
   pavlov-shack:
-    image: ghcr.io/gab9281/pavlov-shack-docker:main
+    image: ghcr.io/bkhornyt/pavlov-shack-server-guide:latest
     container_name: pavlov-shack
     restart: unless-stopped
     environment:
@@ -60,7 +46,6 @@ services:
     volumes:
       - ./Saved:/usr/src/pavlovserver/Pavlov/Saved/
       - pavlov-install:/usr/src/pavlovserver
-      - /root/libc++.so:/lib/x86_64-linux-gnu/libc++.so:ro
 
 volumes:
   pavlov-install:
@@ -68,7 +53,9 @@ volumes:
 
 > Change `TZ` to your timezone. See [timezone list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
 
-## 5. Configure Game.ini
+The image is a patched wrapper around the upstream Pavlov Shack Docker image with a required `libc++` fix applied — no manual steps needed.
+
+## 4. Configure Game.ini
 
 ```bash
 nano ~/pavlov-shack/Saved/Config/LinuxServer/Game.ini
@@ -94,20 +81,17 @@ MapRotation=(MapId="bridge", GameMode="TDM")
 
 > To add a custom map from mod.io, add: `MapRotation=(MapId="UGC1234567", GameMode="CUSTOM")`
 
-## 6. Configure RCON (optional)
+## 5. Configure RCON (optional)
 
 ```bash
-nano ~/pavlov-shack/Saved/Config/RconSettings.txt
-```
-
-```
-Password=YourRconPasswordHere
-Port=9100
+printf 'Password=YourRconPasswordHere\nPort=9100\n' > ~/pavlov-shack/Saved/Config/RconSettings.txt
 ```
 
 > RCON lets you manage the server remotely. Connect with any RCON client to your server IP on port 9100.
+>
+> **Important:** Use `printf` as shown above rather than a text editor — the file must use Unix line endings (LF only). Windows-style line endings (CRLF) will cause Pavlov to misread the password.
 
-## 7. Add yourself as admin (optional)
+## 6. Add yourself as admin (optional)
 
 ```bash
 nano ~/pavlov-shack/Saved/Config/mods.txt
@@ -118,7 +102,7 @@ Add your Quest username (one per line):
 YourQuestUsername
 ```
 
-## 8. Open firewall ports
+## 7. Open firewall ports
 
 ```bash
 sudo ufw allow 7777/udp
@@ -128,7 +112,7 @@ sudo ufw allow 22/tcp
 sudo ufw enable
 ```
 
-## 9. Start the server
+## 8. Start the server
 
 ```bash
 cd ~/pavlov-shack && docker compose up -d
